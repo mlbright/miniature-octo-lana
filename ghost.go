@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-    "os/user"
-    "path"
+	"os/user"
+	"path"
 )
 
 var private bool
@@ -34,9 +34,9 @@ func main() {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // susceptible to man-in-the-middle
 	}
 	client := &http.Client{Transport: tr}
-    
+
 	url := GITHUB_API + "/gists"
-    
+
 	flag.Parse()
 
 	if anonymous {
@@ -45,36 +45,37 @@ func main() {
 
 	if login {
 		fmt.Println("Signing in")
-        usr, err := user.Current()
-        file := path.Join(usr.HomeDir,".gist")
-        auth := url + "/authorizations"
-        
-        dump := `
-        {
-  "scopes": [
-    "gist"
-  ],
-  "note": "yet another cli gister"
-}`
-        
-        payload := bytes.NewBufferString(
-        client.Post(auth,"application/json",payload)
-        
-        err := ioutil.WriteFile(file,[]bytes(token),0777)
-        if err != nil {
-            log.Fatal(err)
-        }
-        url = url + "?access_token=" + token
+		usr, err := user.Current()
+		file := path.Join(usr.HomeDir, ".gist")
+		auth := url + "/authorizations"
+
+		dump := `{
+            "scopes": [
+                "gist"
+                ],
+            "note": "yet another cli gister"
+            }`
+
+		payload := bytes.NewBufferString(dump)
+		resp, err := client.Post(auth, "application/json", payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		//TODO: get token from resp.Body
+
+		err := ioutil.WriteFile(file, []bytes(token), 0777)
+		if err != nil {
+			log.Fatal(err)
+		}
+		url = url + "?access_token=" + token
 	}
-
-
 
 	file, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-
 
 	buf := bytes.NewBuffer(file)
 	resp, err := client.Post(url, "application/json", buf)
