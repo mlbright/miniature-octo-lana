@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+    "os/user"
+    "path"
 )
 
 var private bool
@@ -27,6 +29,14 @@ const (
 )
 
 func main() {
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // susceptible to man-in-the-middle
+	}
+	client := &http.Client{Transport: tr}
+    
+	url := GITHUB_API + "/gists"
+    
 	flag.Parse()
 
 	if anonymous {
@@ -35,19 +45,36 @@ func main() {
 
 	if login {
 		fmt.Println("Signing in")
+        usr, err := user.Current()
+        file := path.Join(usr.HomeDir,".gist")
+        auth := url + "/authorizations"
+        
+        dump := `
+        {
+  "scopes": [
+    "gist"
+  ],
+  "note": "yet another cli gister"
+}`
+        
+        payload := bytes.NewBufferString(
+        client.Post(auth,"application/json",payload)
+        
+        err := ioutil.WriteFile(file,[]bytes(token),0777)
+        if err != nil {
+            log.Fatal(err)
+        }
+        url = url + "?access_token=" + token
 	}
 
-	url := GITHUB_API + "/gists"
+
 
 	file, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // susceptible to man-in-the-middle
-	}
-	client := &http.Client{Transport: tr}
+
 
 	buf := bytes.NewBuffer(file)
 	resp, err := client.Post(url, "application/json", buf)
