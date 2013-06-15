@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,21 +12,15 @@ import (
 	"path"
 )
 
-var private bool
-var description string
-var anonymous bool
-var login bool
-
-func init() {
-	flag.BoolVar(&private, "p", false, "make the gist private")
-	flag.StringVar(&description, "d", "", "the gist of the gist!")
-	flag.BoolVar(&anonymous, "a", false, "anonymously post a gist, even while signed in")
-	flag.BoolVar(&login, "login", false, "sign in to Github.com or your an instance of Github Enterprise")
-}
-
 const (
 	GITHUB_API = "https://api.github.com"
 )
+
+type Gist struct {
+	Description string                       `json:"description"`
+	Public      bool                         `json:"public"`
+	Files       map[string]map[string]string `json:"files"`
+}
 
 func main() {
 
@@ -39,55 +33,40 @@ func main() {
 
 	flag.Parse()
 
-	if anonymous {
-		fmt.Println("Posting anonymously")
-	}
-
-	if login {
-		fmt.Println("Signing in")
-		usr, err := user.Current()
-		file := path.Join(usr.HomeDir, ".gist")
-		auth := url + "/authorizations"
-
-		dump := `{
-            "scopes": [
-                "gist"
-                ],
-            "note": "yet another cli gister"
-            }`
-
-		payload := bytes.NewBufferString(dump)
-		resp, err := client.Post(auth, "application/json", payload)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		//TODO: get token from resp.Body
-
-		err := ioutil.WriteFile(file, []bytes(token), 0777)
-		if err != nil {
-			log.Fatal(err)
-		}
-		url = url + "?access_token=" + token
-	}
-
-	file, err := ioutil.ReadFile(flag.Arg(0))
+	usr, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	buf := bytes.NewBuffer(file)
+	file := path.Join(usr.HomeDir, ".gist")
+
+	token, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	url = url + "?access_token=" + string(token)
+
+	contents, err := ioutil.ReadFile(flag.Arg(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	m := make(map[string]string)
+	m["content"] = string(contents)
+	n := make(map[string]map[string]string)
+	n[flag.Arg(0)] = m
+
+	g := Gist{"a file", true, n}
+	b, err := json.Marshal(g)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	buf := bytes.NewBuffer(b)
 	resp, err := client.Post(url, "application/json", buf)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(string(body))
 }
