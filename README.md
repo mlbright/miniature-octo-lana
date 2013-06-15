@@ -9,7 +9,7 @@ Installation
 - clone this repo
 - run:
 
-$ go install # Easiest is to create a working Golang setup with a GOPATH environment variable
+``` $ go install # Easiest is to create a working Golang setup with a GOPATH environment variable ```
 
 - obtain a GitHub "Personal API Access Token" and save it in a file called '.gist' in your $HOME directory.
 (On Windows, the home directory is usually C:\Users\<you>) 
@@ -23,5 +23,7 @@ Usage
 
 Add 'ghost' to your system PATH.
 
+```
 $ ghost <file> # unix
 C:\> ghost <file> # Windows
+```
