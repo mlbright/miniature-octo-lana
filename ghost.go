@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +18,18 @@ type Gist struct {
 	Description string                       `json:"description"`
 	Public      bool                         `json:"public"`
 	Files       map[string]map[string]string `json:"files"`
+}
+
+// exists returns whether the given file or directory exists or not
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 func main() {
@@ -35,18 +48,27 @@ func main() {
 
 	flag.Parse()
 
+	if flag.NArg() < 1 {
+		log.Fatal("There must be at least one argument, a file")
+	}
+
 	files := make(map[string]map[string]string)
 
 	for _, name := range flag.Args() {
+		_, err := os.Stat(name)
+		if err == nil {
+			contents, err := ioutil.ReadFile(name)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		contents, err := ioutil.ReadFile(name)
-		if err != nil {
-			log.Fatal(err)
+			file := make(map[string]string)
+			file["content"] = string(contents)
+			files[name] = file
 		}
-
-		file := make(map[string]string)
-		file["content"] = string(contents)
-		files[name] = file
+		if os.IsNotExist(err) {
+			log.Println(name, " does not exist")
+		}
 	}
 
 	g := Gist{"", true, files}
@@ -61,4 +83,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(body))
 }
