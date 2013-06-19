@@ -20,18 +20,6 @@ type Gist struct {
 	Files       map[string]map[string]string `json:"files"`
 }
 
-// exists returns whether the given file or directory exists or not
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
 func main() {
 
 	var token string
@@ -65,9 +53,10 @@ func main() {
 			file := make(map[string]string)
 			file["content"] = string(contents)
 			files[name] = file
-		}
-		if os.IsNotExist(err) {
-			log.Println(name, " does not exist")
+		} else {
+			if os.IsNotExist(err) {
+				log.Println(name, " does not exist")
+			}
 		}
 	}
 
