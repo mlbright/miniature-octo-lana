@@ -8,12 +8,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os/user"
-	"path"
+	"os"
 )
 
 const (
-	GITHUB_API = "https://api.github.com"
+	GITHUB_API = "https://api.github.com/gists?access_token="
 )
 
 type Gist struct {
@@ -24,40 +23,35 @@ type Gist struct {
 
 func main() {
 
+	var token string
+	if token = os.Getenv("GITHUB_PAT"); token == "" {
+		log.Fatal("The GITHUB_PAT environment variable must be set with your GitHub Personal API access token")
+	}
+
+	url := GITHUB_API + token
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // susceptible to man-in-the-middle
 	}
 	client := &http.Client{Transport: tr}
 
-	url := GITHUB_API + "/gists"
-
 	flag.Parse()
 
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
+	files := make(map[string]map[string]string)
+
+	for _, name := range flag.Args() {
+
+		contents, err := ioutil.ReadFile(name)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		file := make(map[string]string)
+		file["content"] = string(contents)
+		files[name] = file
 	}
 
-	file := path.Join(usr.HomeDir, ".gist")
-
-	token, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	url = url + "?access_token=" + string(token)
-
-	contents, err := ioutil.ReadFile(flag.Arg(0))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	m := make(map[string]string)
-	m["content"] = string(contents)
-	n := make(map[string]map[string]string)
-	n[flag.Arg(0)] = m
-
-	g := Gist{"a file", true, n}
+	g := Gist{"a file", true, files}
 	b, err := json.Marshal(g)
 	if err != nil {
 		log.Fatal(err)
