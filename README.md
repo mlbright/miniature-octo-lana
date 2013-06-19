@@ -24,6 +24,6 @@ Usage
 Add 'ghost' to your system PATH.
 
 ```
-$ ghost <file> # unix
-C:\> ghost <file> # Windows
+$ ghost <file> [files ...] # unix
+C:\> ghost <file> [files ...] # Windows
 ```
