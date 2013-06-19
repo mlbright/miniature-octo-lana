@@ -11,9 +11,7 @@ import (
 	"os"
 )
 
-const (
-	GITHUB_API = "https://api.github.com/gists?access_token="
-)
+const GITHUB_API = "https://api.github.com/gists?access_token="
 
 type Gist struct {
 	Description string                       `json:"description"`
@@ -51,7 +49,7 @@ func main() {
 		files[name] = file
 	}
 
-	g := Gist{"a file", true, files}
+	g := Gist{"", true, files}
 	b, err := json.Marshal(g)
 	if err != nil {
 		log.Fatal(err)
